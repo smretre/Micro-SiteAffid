@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Achadinhos | Shopee & ML</title>
+    <style>
+        :root {
+            --primary: #ee4d2d; /* Laranja Shopee */
+            --bg: #f5f5f5;
+            --card: #ffffff;
+        }
+
+        body { font-family: sans-serif; background: var(--bg); margin: 0; padding-bottom: 50px; }
+        
+        header { 
+            background: linear-gradient(135deg, #ee4d2d, #ff7337); 
+            color: white; padding: 40px 20px; text-align: center;
+            border-bottom-left-radius: 30px; border-bottom-right-radius: 30px;
+        }
+
+        .search-container { margin-top: -25px; text-align: center; padding: 0 20px; }
+        
+        #searchInput { 
+            width: 100%; max-width: 500px; padding: 15px 25px; 
+            border-radius: 50px; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            font-size: 16px; outline: none;
+        }
+
+        .grid { 
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+            gap: 20px; padding: 40px 20px; max-width: 1200px; margin: 0 auto;
+        }
+
+        .card { 
+            background: var(--card); border-radius: 15px; padding: 15px; 
+            text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: 0.3s;
+        }
+        
+        .card:hover { transform: translateY(-5px); }
+
+        .card img { width: 100%; height: 200px; object-fit: contain; border-radius: 10px; }
+
+        .card h3 { font-size: 16px; margin: 15px 0; height: 40px; overflow: hidden; }
+
+        .btn { 
+            background: var(--primary); color: white; text-decoration: none; 
+            display: block; padding: 12px; border-radius: 8px; font-weight: bold; 
+        }
+
+        #loading, #noResults { text-align: center; margin-top: 50px; font-weight: bold; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🛍️ Melhores Achadinhos</h1>
+    <p>Encontre o link do vídeo que você viu no TikTok/Insta</p>
+</header>
+
+<div class="search-container">
+    <input type="text" id="searchInput" placeholder="Digite o que você procura... (ex: garrafa)" onkeyup="filterProducts()">
+</div>
+
+<div id="loading">Carregando ofertas fresquinhas...</div>
+<div id="noResults" class="hidden">Nenhum produto encontrado. 😕</div>
+
+<main id="productGrid" class="grid"></main>
+
+<script>
+    // 1. COLE O LINK DO SEU CSV PUBLICADO AQUI EMBAIXO:
+    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1gPbYegfQbIgXFpvkp5FKHY0BeN7piBeSekPy7oZbuF0/edit?usp=drivesdk';
+
+    let allProducts = [];
+
+    async function fetchData() {
+        try {
+            const response = await fetch(SHEET_CSV_URL);
+            const data = await response.text();
+            
+            // Converte CSV para Array de Objetos
+            const rows = data.split('\n').slice(1);
+            allProducts = rows.map(row => {
+                const cols = row.split(',');
+                return {
+                    nome: cols[0]?.trim(),
+                    imagem: cols[1]?.trim(),
+                    link: cols[2]?.trim(),
+                    tags: cols[3]?.trim()?.toLowerCase() || ""
+                };
+            }).filter(p => p.nome && p.link);
+
+            document.getElementById('loading').classList.add('hidden');
+            render(allProducts);
+        } catch (error) {
+            document.getElementById('loading').innerText = "Erro ao carregar dados. Verifique o link da planilha.";
+        }
+    }
+
+    function render(list) {
+        const grid = document.getElementById('productGrid');
+        const noRes = document.getElementById('noResults');
+        grid.innerHTML = '';
+        
+        if (list.length === 0) {
+            noRes.classList.remove('hidden');
+        } else {
+            noRes.classList.add('hidden');
+            list.forEach(p => {
+                grid.innerHTML += `
+                    <div class="card">
+                        <img src="${p.imagem}" alt="${p.nome}">
+                        <h3>${p.nome}</h3>
+                        <a href="${p.link}" target="_blank" class="btn">VER PRODUTO</a>
+                    </div>
+                `;
+            });
+        }
+    }
+
+    function filterProducts() {
+        const term = document.getElementById('searchInput').value.toLowerCase();
+        const filtered = allProducts.filter(p => 
+            p.nome.toLowerCase().includes(term) || 
+            p.tags.includes(term)
+        );
+        render(filtered);
+    }
+
+    fetchData();
+</script>
+
+</body>
+</html>
